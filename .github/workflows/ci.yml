@@ -36,8 +36,8 @@ jobs:
       - name: Type-check affected packages and dependents
         run: pnpm exec turbo run typecheck --affected
 
-      - name: Lint affected packages and dependents
-        run: pnpm exec turbo run lint --affected
+      - name: Lint files changed by the PR
+        run: pnpm exec biome check --changed --since="$TURBO_SCM_BASE" --no-errors-on-unmatched
 
       - name: Test affected packages and dependents
         run: pnpm exec turbo run test --affected
