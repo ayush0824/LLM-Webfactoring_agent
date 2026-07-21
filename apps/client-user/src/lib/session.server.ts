@@ -3,6 +3,7 @@ import { useSession } from "@tanstack/react-start/server";
 export interface SessionData {
 	userId: string;
 	username: string;
+	sessionToken: string;
 }
 
 // Session secret - in production, use environment variable
@@ -23,7 +24,7 @@ export function useAppSession() {
 
 export async function getSessionData(): Promise<SessionData | null> {
 	const session = await useAppSession();
-	if (!session.data.userId) {
+	if (!session.data.userId || !session.data.sessionToken) {
 		return null;
 	}
 	return session.data as SessionData;

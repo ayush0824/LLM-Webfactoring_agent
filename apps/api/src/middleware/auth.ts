@@ -1,7 +1,18 @@
+import { randomBytes } from "node:crypto";
 import type { GrpcSessionPayload } from "@chirp/shared-types";
 import jwt from "jsonwebtoken";
 
-const JWT_SECRET = process.env.GRPC_JWT_SECRET || "chirp-grpc-jwt-secret-key-at-least-32-chars";
+function getJwtSecret(): string {
+	if (process.env.GRPC_JWT_SECRET) {
+		return process.env.GRPC_JWT_SECRET;
+	}
+	if (process.env.NODE_ENV === "production") {
+		throw new Error("GRPC_JWT_SECRET is required in production");
+	}
+	return randomBytes(32).toString("base64url");
+}
+
+const JWT_SECRET = getJwtSecret();
 
 export interface AuthContext {
 	userId: string;
@@ -20,7 +31,7 @@ export function validateSessionToken(token: string): AuthContext {
 			username: decoded.username,
 			role: decoded.role,
 		};
-	} catch (error) {
+	} catch {
 		throw new Error("Invalid or expired session token");
 	}
 }

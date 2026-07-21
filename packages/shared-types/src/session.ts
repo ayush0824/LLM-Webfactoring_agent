@@ -5,6 +5,7 @@ export interface SessionData {
 	userId: string;
 	username: string;
 	role: "user" | "admin" | "moderator";
+	sessionToken: string;
 }
 
 /**

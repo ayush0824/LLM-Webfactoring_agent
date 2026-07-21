@@ -1,7 +1,7 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db, schema } from "../db";
 import { type AuthContext, createSessionToken } from "../middleware/auth";
-import { generateId, hashPassword, verifyPassword } from "./utils";
+import { generateId, hashPassword, isLegacyPasswordHash, verifyPassword } from "./utils";
 
 const { users } = schema;
 
@@ -77,6 +77,15 @@ export async function loginUser(input: LoginInput) {
 	const valid = await verifyPassword(input.password, user.passwordHash);
 	if (!valid) {
 		throw new Error("Invalid email or password");
+	}
+
+	// Upgrade legacy hashes only after the supplied password has been verified.
+	if (isLegacyPasswordHash(user.passwordHash)) {
+		const upgradedPasswordHash = await hashPassword(input.password);
+		await db
+			.update(users)
+			.set({ passwordHash: upgradedPasswordHash, updatedAt: new Date() })
+			.where(and(eq(users.id, user.id), eq(users.passwordHash, user.passwordHash)));
 	}
 
 	// Create session token

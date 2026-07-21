@@ -4,6 +4,7 @@ export interface AdminSessionData {
 	userId: string;
 	username: string;
 	role: "admin" | "moderator";
+	sessionToken: string;
 }
 
 // Session secret - in production, use environment variable
@@ -25,7 +26,7 @@ export function useAdminSession() {
 
 export async function getAdminSessionData(): Promise<AdminSessionData | null> {
 	const session = await useAdminSession();
-	if (!session.data.userId || !session.data.role) {
+	if (!session.data.userId || !session.data.role || !session.data.sessionToken) {
 		return null;
 	}
 	// Verify role is admin or moderator
