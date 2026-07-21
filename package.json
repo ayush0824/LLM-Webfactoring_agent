@@ -12,6 +12,8 @@
 		"lint": "turbo run lint",
 		"lint:fix": "biome check --write .",
 		"format": "biome format --write .",
+		"hooks:install": "node scripts/install-hooks.mjs",
+		"prepare": "node scripts/install-hooks.mjs",
 		"typecheck": "turbo run typecheck",
 		"test": "turbo run test",
 		"test:unit": "turbo run test:unit",

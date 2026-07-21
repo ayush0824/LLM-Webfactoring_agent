@@ -1,0 +1,46 @@
+name: PR CI
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  TURBO_SCM_BASE: ${{ github.event.pull_request.base.sha }}
+  TURBO_SCM_HEAD: ${{ github.event.pull_request.head.sha }}
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Enable repository pnpm version
+        run: |
+          corepack enable
+          corepack prepare "$(node -p "require('./package.json').packageManager")" --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type-check affected packages and dependents
+        run: pnpm exec turbo run typecheck --affected
+
+      - name: Lint affected packages and dependents
+        run: pnpm exec turbo run lint --affected
+
+      - name: Test affected packages and dependents
+        run: pnpm exec turbo run test --affected
+
+      - name: Build affected packages and dependents
+        run: pnpm exec turbo run build --affected

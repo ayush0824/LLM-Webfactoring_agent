@@ -5,6 +5,8 @@
 	"compilerOptions": {
 		"outDir": "./dist",
 		"rootDir": "./src",
+		"noEmit": false,
+		"allowImportingTsExtensions": false,
 		"noUncheckedIndexedAccess": false,
 		"skipLibCheck": true
 	}

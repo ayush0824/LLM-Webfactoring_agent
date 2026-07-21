@@ -337,7 +337,7 @@ function UsersPage() {
 											user.status === "active" ? styles.statusActive : styles.statusBanned,
 										)}
 									>
-										{user.status === "banned" ? "Banned" : "Active"}
+										{user.status === "active" ? "Active" : "Banned"}
 									</span>
 								</td>
 								<td {...stylex.props(styles.td)}>{user.postCount}</td>

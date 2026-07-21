@@ -1,0 +1,4 @@
+#!/bin/sh
+set -eu
+
+pnpm exec biome check --staged --no-errors-on-unmatched
