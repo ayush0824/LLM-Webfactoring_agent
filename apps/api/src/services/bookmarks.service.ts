@@ -1,8 +1,9 @@
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { db, schema } from "../db";
+import { enrichPosts } from "./post-enrichment.service";
 import { generateId } from "./utils";
 
-const { bookmarks, posts, users, likes } = schema;
+const { bookmarks, posts, users } = schema;
 
 /**
  * Toggle bookmark for a post (create if not exists, delete if exists)
@@ -75,62 +76,29 @@ export async function getBookmarkedPosts(
 		return [];
 	}
 
-	// Get full post details
-	const postsWithDetails = await Promise.all(
-		bookmarkedPosts.map(async (bookmark) => {
-			const post = await db
-				.select({
-					id: posts.id,
-					content: posts.content,
-					createdAt: posts.createdAt,
-					updatedAt: posts.updatedAt,
-					author: {
-						id: users.id,
-						username: users.username,
-						displayName: users.displayName,
-						avatarUrl: users.avatarUrl,
-					},
-				})
-				.from(posts)
-				.leftJoin(users, eq(posts.authorId, users.id))
-				.where(eq(posts.id, bookmark.postId))
-				.get();
+	const postIds = bookmarkedPosts.map((bookmark) => bookmark.postId);
+	const postDetails = await db
+		.select({
+			id: posts.id,
+			content: posts.content,
+			createdAt: posts.createdAt,
+			updatedAt: posts.updatedAt,
+			author: {
+				id: users.id,
+				username: users.username,
+				displayName: users.displayName,
+				avatarUrl: users.avatarUrl,
+			},
+		})
+		.from(posts)
+		.leftJoin(users, eq(posts.authorId, users.id))
+		.where(inArray(posts.id, postIds));
 
-			if (!post) return null;
+	const postById = new Map(postDetails.map((post) => [post.id, post]));
+	const orderedPosts = bookmarkedPosts.flatMap((bookmark) => {
+		const post = postById.get(bookmark.postId);
+		return post ? [post] : [];
+	});
 
-			// Get like count
-			const likeCountResult = await db
-				.select({ count: sql<number>`count(*)` })
-				.from(likes)
-				.where(eq(likes.postId, post.id))
-				.get();
-
-			// Get comment count
-			const commentCountResult = await db
-				.select({ count: sql<number>`count(*)` })
-				.from(schema.comments)
-				.where(eq(schema.comments.postId, post.id))
-				.get();
-
-			// Check if requester liked this post
-			let isLiked = false;
-			if (requesterId) {
-				const likeStatus = await db
-					.select()
-					.from(likes)
-					.where(and(eq(likes.postId, post.id), eq(likes.userId, requesterId)))
-					.get();
-				isLiked = !!likeStatus;
-			}
-
-			return {
-				...post,
-				likeCount: likeCountResult?.count || 0,
-				commentCount: commentCountResult?.count || 0,
-				isLiked,
-			};
-		}),
-	);
-
-	return postsWithDetails.filter((p) => p !== null);
+	return enrichPosts(orderedPosts, requesterId);
 }
